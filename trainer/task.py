@@ -80,7 +80,7 @@ with tf.Graph().as_default() as g:
     cross_entropy = tf.losses.softmax_cross_entropy(onehot_labels=y_, logits=tf.matmul(x, W) + b, label_smoothing=1e-5)
     
     # 勾配降下法を用いてクロスエントロピーを最小化する
-    train_step = tf.train.GradientDescentOptimizer(0.5).minimize(cross_entropy)
+    train_step = tf.train.GradientDescentOptimizer(0.01).minimize(cross_entropy)
     # train_op = tf.train.AdamOptimizer(learning_rate=0.01).minimize(cross_entropy)
     
     # 予測値と正解値を比較してbool値にする
