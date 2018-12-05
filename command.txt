@@ -1,0 +1,83 @@
+■ Cloud Storageのバケットの作成
+まずはCloud ML Engineで使用するCloud Storageのバケットを作成しましょう。今回は学習用データや学習済みのモデルを置くバケットと、TensorFlowのコードをアップロードするためのバケットを作成します。Cloud Shell上で次のコマンドを実行してください。
+
+－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－
+
+# Project IDの取得
+$ PROJECT_ID=`gcloud config list project --format "value(core.project)"`
+ 
+# バケットの作成
+$ gsutil mb -l us-central1 "gs://${PROJECT_ID}-ml"
+$ gsutil mb -l us-central1 "gs://${PROJECT_ID}-ml-staging"
+
+－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－
+
+
+■ Gitからソースコード取得
+
+－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－
+
+$ git clone https://github.com/dvlp-daichi/eegtweets-ml-engine.git
+$ cd eegtweets-ml-engine
+
+－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－
+
+
+
+■ Cloud ML Engineに学習のジョブを送る
+
+－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－
+
+# 学習用データをCloud Storageにコピー
+$ gsutil cp data/eeg-emotion.csv gs://${PROJECT_ID}-ml/data/
+ 
+# Jobの名前をuniqueになるように生成
+$ JOB_NAME="emotionanalysis`date '+%Y%m%d%H%M%S'`"
+ 
+# 学習用のデータの場所
+$ CSV_FILE="gs://${PROJECT_ID}-ml/data/eeg-emotion.csv"
+ 
+$ gcloud ml-engine jobs submit training ${JOB_NAME} \
+  --package-path=trainer \
+  --module-name=trainer.task \
+  --staging-bucket="gs://${PROJECT_ID}-ml-staging" \
+  --region=us-central1 \
+  --config=config.yaml \
+  --runtime-version 1.2 \
+  -- \
+  --output_path="gs://${PROJECT_ID}-ml/emotionanalysis/${JOB_NAME}" \
+  --csv_file=${CSV_FILE}
+
+－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－
+
+
+
+■ 学習済みモデルをデプロイしてみよう
+
+無事にジョブが終了したら以下のコマンドを実行すると、できあがった学習済みモデルからWeb APIを生成することができます。
+
+－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－
+
+# Modelを作成
+$ gcloud ml-engine models create emotionanalysis --regions us-central1
+ 
+# Modelの下にVersionを作成
+gcloud ml-engine versions create v1 \
+  --model emotionanalysis \
+  --origin gs://${PROJECT_ID}-ml/emotionanalysis/${JOB_NAME}/model
+
+－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－
+
+
+■ WebAPIの動作確認
+
+デプロイしたモデルの使い方はCloud Vision APIなど他のGCPの機械学習APIとほぼ同じです。
+まずはPython 用 Google API クライアントライブラリをインストールしましょう。
+
+－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－
+
+$ sudo pip install --upgrade google-api-python-client
+$ python prediction.py
+
+－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－
+
