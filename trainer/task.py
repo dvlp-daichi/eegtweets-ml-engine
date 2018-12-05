@@ -43,7 +43,7 @@ def load_data():
     
     y_all = np.zeros([len(mat), 6])
     for i, j in enumerate(mat[:, -1]):
-        y_all[i][j-1] = 1.
+        y_all[i][int(j)-1] = 1.
     
     y_train = y_all[ind_train]
     y_test = y_all[ind_test]
@@ -59,40 +59,41 @@ with tf.Graph().as_default() as g:
 
     tf.set_random_seed(0)
 
-    # ”]”giŠwKjƒf[ƒ^‚ğxAŠ´îi—\‘ªjŒ‹‰Ê‚ğy‚ÉŠi”[‚·‚é
+    # è„³æ³¢ï¼ˆå­¦ç¿’ï¼‰ãƒ‡ãƒ¼ã‚¿ã‚’xã€æ„Ÿæƒ…ï¼ˆäºˆæ¸¬ï¼‰çµæœã‚’yã«æ ¼ç´ã™ã‚‹
     x = tf.placeholder(tf.float32, [None, 5])
     
-    # d‚İ‚ğWAƒoƒCƒAƒX‚ğb‚Æ‚µ‚Ä•Ï”éŒ¾
+    # é‡ã¿ã‚’Wã€ãƒã‚¤ã‚¢ã‚¹ã‚’bã¨ã—ã¦å¤‰æ•°å®£è¨€
     W = tf.Variable(tf.zeros([5, 6]))
     b = tf.Variable(tf.zeros([6]))
 
-    # ƒgƒŒ[ƒjƒ“ƒOƒf[ƒ^isoftmaxŠÖ”‚Åˆ—j
+    # ãƒˆãƒ¬ãƒ¼ãƒ‹ãƒ³ã‚°ãƒ‡ãƒ¼ã‚¿ï¼ˆsoftmaxé–¢æ•°ã§å‡¦ç†ï¼‰
     y = tf.nn.softmax(tf.matmul(x, W) + b)
     # logits = inference(x_ph)
     # y = tf.nn.softmax(logits)
     
-    # ³‰ğƒ‰ƒxƒ‹ƒf[ƒ^
+    # æ­£è§£ãƒ©ãƒ™ãƒ«ãƒ‡ãƒ¼ã‚¿
     y_ = tf.placeholder(tf.float32, [None, 6])
     
-    # ‘¹¸ŠÖ”iƒNƒƒXƒGƒ“ƒgƒƒs[j
-    cross_entropy = tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(y), reduction_indices=[1]))
-    # cross_entropy = tf.losses.softmax_cross_entropy(onehot_labels=y_ph, logits=logits, label_smoothing=1e-5)
+    # æå¤±é–¢æ•°ï¼ˆã‚¯ãƒ­ã‚¹ã‚¨ãƒ³ãƒˆãƒ­ãƒ”ãƒ¼ï¼‰
+    # cross_entropy = tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(y), reduction_indices=[1]))
+    # cross_entropy = tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(y + 1e-50), reduction_indices=[1]))
+    cross_entropy = tf.losses.softmax_cross_entropy(onehot_labels=y_, logits=tf.matmul(x, W) + b, label_smoothing=1e-5)
     
-    # Œù”z~‰º–@‚ğ—p‚¢‚ÄƒNƒƒXƒGƒ“ƒgƒƒs[‚ğÅ¬‰»‚·‚é
+    # å‹¾é…é™ä¸‹æ³•ã‚’ç”¨ã„ã¦ã‚¯ãƒ­ã‚¹ã‚¨ãƒ³ãƒˆãƒ­ãƒ”ãƒ¼ã‚’æœ€å°åŒ–ã™ã‚‹
     train_step = tf.train.GradientDescentOptimizer(0.5).minimize(cross_entropy)
     # train_op = tf.train.AdamOptimizer(learning_rate=0.01).minimize(cross_entropy)
     
-    # —\‘ª’l‚Æ³‰ğ’l‚ğ”äŠr‚µ‚Äbool’l‚É‚·‚é
-    # argmax(y, 1)‚Í—\‘ª’l‚ÌŠes‚ÅÅ‘å‚Æ‚È‚éƒCƒ“ƒfƒbƒNƒX‚ğ‚Ğ‚Æ‚Â•Ô‚·
+    # äºˆæ¸¬å€¤ã¨æ­£è§£å€¤ã‚’æ¯”è¼ƒã—ã¦boolå€¤ã«ã™ã‚‹
+    # argmax(y, 1)ã¯äºˆæ¸¬å€¤ã®å„è¡Œã§æœ€å¤§ã¨ãªã‚‹ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’ã²ã¨ã¤è¿”ã™
     correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
-    # boole’l‚ğ0‚à‚µ‚­‚Í1‚É•ÏŠ·‚µ‚Ä•½‹Ï’l‚ğ‚Æ‚éA‚±‚ê‚ğ³‰ğ—¦‚Æ‚·‚é
+    # booleå€¤ã‚’0ã‚‚ã—ãã¯1ã«å¤‰æ›ã—ã¦å¹³å‡å€¤ã‚’ã¨ã‚‹ã€ã“ã‚Œã‚’æ­£è§£ç‡ã¨ã™ã‚‹
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
     
     
-    # •Ï”‚Ì‰Šú‰»
+    # å¤‰æ•°ã®åˆæœŸåŒ–
     init = tf.global_variables_initializer()
     
-    # ƒZƒbƒVƒ‡ƒ“‚ÌŠJn
+    # ã‚»ãƒƒã‚·ãƒ§ãƒ³ã®é–‹å§‹
     saver = tf.train.Saver()
     
     with tf.Session() as sess:
@@ -100,9 +101,9 @@ with tf.Graph().as_default() as g:
         
         for i in range(1000):
         
-            # ƒgƒŒ[ƒjƒ“ƒOƒf[ƒ^‚©‚çƒ‰ƒ“ƒ_ƒ€‚É100ŒÂ’Šo
+            # ãƒˆãƒ¬ãƒ¼ãƒ‹ãƒ³ã‚°ãƒ‡ãƒ¼ã‚¿ã‹ã‚‰ãƒ©ãƒ³ãƒ€ãƒ ã«100å€‹æŠ½å‡º
             ind = np.random.choice(len(y_train), 100)
-            # Šm—¦“IŒù”z~‰º–@‚É‚æ‚èƒNƒƒXƒGƒ“ƒgƒƒs[‚ğÅ¬‰»‚·‚é‚æ‚¤‚Èd‚İ‚ğXV‚·‚é
+            # ç¢ºç‡çš„å‹¾é…é™ä¸‹æ³•ã«ã‚ˆã‚Šã‚¯ãƒ­ã‚¹ã‚¨ãƒ³ãƒˆãƒ­ãƒ”ãƒ¼ã‚’æœ€å°åŒ–ã™ã‚‹ã‚ˆã†ãªé‡ã¿ã‚’æ›´æ–°ã™ã‚‹
             sess.run(train_step, feed_dict={x: x_train[ind], y_: y_train[ind]})
             
             if i % 100 == 0:
