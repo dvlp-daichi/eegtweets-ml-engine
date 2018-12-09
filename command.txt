@@ -1,40 +1,40 @@
-�� Cloud Storage�̃o�P�b�g�̍쐬
-�܂���Cloud ML Engine�Ŏg�p����Cloud Storage�̃o�P�b�g���쐬���܂��傤�B����͊w�K�p�f�[�^��w�K�ς݂̃��f����u���o�P�b�g�ƁATensorFlow�̃R�[�h���A�b�v���[�h���邽�߂̃o�P�b�g���쐬���܂��BCloud Shell��Ŏ��̃R�}���h�����s���Ă��������B
+■ Cloud Storageのバケットの作成
+まずはCloud ML Engineで使用するCloud Storageのバケットを作成しましょう。今回は学習用データや学習済みのモデルを置くバケットと、TensorFlowのコードをアップロードするためのバケットを作成します。Cloud Shell上で次のコマンドを実行してください。
 
-�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|
+－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－
 
-# Project ID�̎擾
+# Project IDの取得
 $ PROJECT_ID=`gcloud config list project --format "value(core.project)"`
  
-# �o�P�b�g�̍쐬
+# バケットの作成
 $ gsutil mb -l us-central1 "gs://${PROJECT_ID}-ml"
 $ gsutil mb -l us-central1 "gs://${PROJECT_ID}-ml-staging"
 
-�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|
+－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－
 
 
-�� Git����\�[�X�R�[�h�擾
+■ Gitからソースコード取得
 
-�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|
+－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－
 
 $ git clone https://github.com/dvlp-daichi/eegtweets-ml-engine.git
 $ cd eegtweets-ml-engine
 
-�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|
+－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－
 
 
 
-�� Cloud ML Engine�Ɋw�K�̃W���u�𑗂�
+■ Cloud ML Engineに学習のジョブを送る
 
-�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|
+－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－
 
-# �w�K�p�f�[�^��Cloud Storage�ɃR�s�[
+# 学習用データをCloud Storageにコピー
 $ gsutil cp data/eeg-emotion.csv gs://${PROJECT_ID}-ml/data/
  
-# Job�̖��O��unique�ɂȂ�悤�ɐ���
+# Jobの名前をuniqueになるように生成
 $ JOB_NAME="emotionanalysis`date '+%Y%m%d%H%M%S'`"
  
-# �w�K�p�̃f�[�^�̏ꏊ
+# 学習用のデータの場所
 $ CSV_FILE="gs://${PROJECT_ID}-ml/data/eeg-emotion.csv"
  
 $ gcloud ml-engine jobs submit training ${JOB_NAME} \
@@ -48,36 +48,35 @@ $ gcloud ml-engine jobs submit training ${JOB_NAME} \
   --output_path="gs://${PROJECT_ID}-ml/emotionanalysis/${JOB_NAME}" \
   --csv_file=${CSV_FILE}
 
-�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|
+－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－
 
 
+■ 学習済みモデルをデプロイしてみよう
 
-�� �w�K�ς݃��f�����f�v���C���Ă݂悤
+無事にジョブが終了したら以下のコマンドを実行すると、できあがった学習済みモデルからWeb APIを生成することができます。
 
-�����ɃW���u���I��������ȉ��̃R�}���h�����s����ƁA�ł����������w�K�ς݃��f������Web API�𐶐����邱�Ƃ��ł��܂��B
+－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－
 
-�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|
-
-# Model���쐬
+# Modelを作成
 $ gcloud ml-engine models create emotionanalysis --regions us-central1
  
-# Model�̉���Version���쐬
+# Modelの下にVersionを作成
 gcloud ml-engine versions create v1 \
   --model emotionanalysis \
   --origin gs://${PROJECT_ID}-ml/emotionanalysis/${JOB_NAME}/model
 
-�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|
+－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－
 
 
-�� WebAPI�̓���m�F
+■ WebAPIの動作確認
 
-�f�v���C�������f���̎g������Cloud Vision API�ȂǑ���GCP�̋@�B�w�KAPI�Ƃقړ����ł��B
-�܂���Python �p Google API �N���C�A���g���C�u�������C���X�g�[�����܂��傤�B
+デプロイしたモデルの使い方はCloud Vision APIなど他のGCPの機械学習APIとほぼ同じです。
+まずはPython 用 Google API クライアントライブラリをインストールしましょう。
 
-�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|
+－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－
 
 $ sudo pip install --upgrade google-api-python-client
 $ python prediction.py
 
-�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|�E�|
+－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－・－
 
